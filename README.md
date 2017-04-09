@@ -1,2 +1,2 @@
 # OptSeq
-Recommender system for sequence optimization
+Recommender system for DNA sequence optimization
