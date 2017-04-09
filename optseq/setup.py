@@ -8,4 +8,9 @@ setup(name='optseq',
       author_email='tamimeur@gmail.com',
       license='MIT',
       packages=['optseq'],
-      zip_safe=False)
+      zip_safe=False,
+      entry_points={
+        'console_scripts': [
+            'optseq = optseq.cli:main',
+        ],
+      })
