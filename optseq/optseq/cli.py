@@ -21,6 +21,6 @@ def main(input_file):
     #logging.info('Welcome to OptSeq!')
 
     #there has to be an option for a saved, pre-existing model (for iterating)
-    dnaCNN = dm.dnaModel(input_file)
-    dnaCNN.compile()
-    dnaCNN.design()
+    # dnaCNN = dm.dnaModel(input_file)
+    # dnaCNN.compile()
+    # dnaCNN.design()

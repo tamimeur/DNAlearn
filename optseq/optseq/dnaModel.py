@@ -14,3 +14,7 @@ class dnaModel(object):
 	def __init__(self, input_file):
 		#The input_file should contain only two columns: sequence + output
 		#this should create a CNN/model object which can be trained,tested optimally (hyperparam opt)
+		self.layers = 3
+
+	def train(self):
+		return 0
