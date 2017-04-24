@@ -1,0 +1,3 @@
+[console_scripts]
+optseq = optseq.cli:main
+

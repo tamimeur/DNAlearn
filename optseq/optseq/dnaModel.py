@@ -14,7 +14,18 @@ class dnaModel(object):
 	def __init__(self, input_file):
 		#The input_file should contain only two columns: sequence + output
 		#this should create a CNN/model object which can be trained,tested optimally (hyperparam opt)
+		self.raw_data = pd.read_excel(input_file, header=0, parse_cols="A,B")
+		self.X_train = []
+		self.Y_train = []
+		self.X_test = []
+		self.Y_test = []
 		self.layers = 3
+
+		self.create_model()
+
+	def create_model(self):
+		df = self.raw_data[np.isfinite(self.raw_data[u' expression'])]
+		return 0
 
 	def train(self):
 		return 0
