@@ -23,6 +23,24 @@ def main(input_file):
     #logging.info('Welcome to OptSeq!')
 
     #there has to be an option for a saved, pre-existing model (for iterating)
-    dnaCNN = dm.dnaModel(input_file)
+    dnaCNN = dm.dnaModel(input_file) 
+    ### dnaCNN is now a model object with a CNN and training/testing data ###
+
+
     # dnaCNN.compile()
+    ### when we compile the dnaCNN model it compiles ### 
+    ### and trains (default my current hyperparams, but this should ###
+    ### eventually tune/optimize hyperparams) the CNN and sets a trained flag ### 
+    
     # dnaCNN.design()
+    ### when we execute design (default maximizes col B), ###
+    ### it returns a set (default some percentage of the input data) ###
+    ### of new designs to test (default cheap). ###
+
+    ### I should get this to work with a database, so that ###
+    ### models are stored, saved, and updated in the db, that ###
+    ### that way we can iterate without having to dl and reload ###
+    ### the dnaModel. ###
+
+    #dnaCNN.save()
+    ### BUT FOR NOW ... the last thing it does is output a saved model file. ###
