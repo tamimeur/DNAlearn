@@ -19,8 +19,7 @@ def main(input_file):
     #click.echo(click.style('{0}, {1}'.format(greet, 'OptSeq users!'), fg='blue', blink=False))
     #click.echo(input_file)
     print input_file
-    #logging.basicConfig(filename='optseq.log',level=logging.DEBUG)
-    #logging.info('Welcome to OptSeq!')
+
 
     #there has to be an option for a saved, pre-existing model (for iterating)
     dnaCNN = dm.dnaModel(input_file) 
