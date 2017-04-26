@@ -121,6 +121,16 @@ class dnaModel(object):
 		grid = GridSearchCV(estimator=model, param_grid=param_grid, scoring=make_scorer(my_custom_r2_func, greater_is_better=True), n_jobs=1)
 		grid_result = grid.fit(xtrain, ytrain)
 
+
+		# summarize results
+		means = grid_result.cv_results_['mean_test_score']
+		stds = grid_result.cv_results_['std_test_score']
+		params = grid_result.cv_results_['params']
+		for mean, stdev, param in zip(means, stds, params):
+		    print("%f (%f) with: %r" % (mean, stdev, param))
+		print("\n\nBest: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+		print "\nBest Estimator = ", grid_result.best_estimator_
+
 		###########################################
 		############ TRYING SOMETHING #############
 		###########################################
@@ -133,41 +143,6 @@ class dnaModel(object):
 		print "PREDICTED: ", len(predicted)
 		slope, intercept, r_value, p_value, std_err = stats.linregress(ytest.reshape(-1),predicted.reshape(-1))
 		print "R2 of tuned_model: ", r_value**2
-		
-
-
-		# summarize results
-		means = grid_result.cv_results_['mean_test_score']
-		stds = grid_result.cv_results_['std_test_score']
-		params = grid_result.cv_results_['params']
-		for mean, stdev, param in zip(means, stds, params):
-		    print("%f (%f) with: %r" % (mean, stdev, param))
-		print("\n\nBest: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
-		print "\nBest Estimator = ", grid_result.best_estimator_
-
-		tuned_model = grid_result.best_estimator_.model
-
-		######### Some Temporary Testing #########
-		test_seqs = [u'GGGGACCAGGTGCCGTAAGTAGGTTAGTTTAGAGCTTGACGGGGAAAGCCGGCGAACGTGGCGAGAAAGGAAGGGAAGAAAGCGTTTTCATTTTTTTTTTTCCACCTAGCGGATGACTCTTTTTTTTTCTTAGCGATCCTAGGGCGATCA']
-
-		print "test sequences = ", test_seqs
-
-		##### format test sequences as CNN input for prediction ####
-		Z_test = np.empty([len(test_seqs),seq_len,4])
-		indx = 0
-		for seq in test_seqs:
-			Z_test[indx] = self.__oneHotEncoder(seq)
-			indx += 1
-
-
-		#print "CNN input \n", Z_test, len(Z_test)
-		#These predicts are spitting out nan's ... WHY?!?!?!
-		#print "Ztest: ", Z_test
-		print "current grid_result PREDICTION ", grid_result.predict(Z_test)
-
-		########### Train CNN model ############
-		#batch_size and epoch should be tuned
-		#cnn.fit(xtrain, norm_train, batch_size=128, nb_epoch=6, verbose=1)
 
 		return tuned_model, seq_len, xtrain, ytrain, xtest, ytest, 128, 6
 
@@ -206,8 +181,8 @@ class dnaModel(object):
 		### this will move to test dir
 		### but for now just checking that a loaded .h5 file predicts the same thing
 		### as the original model predicts (before saving)
-		#test_seqs = [u'A'*self.seq_len, u'C'*self.seq_len, u'G'*self.seq_len, u'T'*self.seq_len]
-		test_seqs = [u'GGGGACCAGGTGCCGTAAGTAGGTTAGTTTAGAGCTTGACGGGGAAAGCCGGCGAACGTGGCGAGAAAGGAAGGGAAGAAAGCGTTTTCATTTTTTTTTTTCCACCTAGCGGATGACTCTTTTTTTTTCTTAGCGATCCTAGGGCGATCA']
+		test_seqs = [u'A'*self.seq_len, u'C'*self.seq_len, u'G'*self.seq_len, u'T'*self.seq_len]
+		#test_seqs = [u'GGGGACCAGGTGCCGTAAGTAGGTTAGTTTAGAGCTTGACGGGGAAAGCCGGCGAACGTGGCGAGAAAGGAAGGGAAGAAAGCGTTTTCATTTTTTTTTTTCCACCTAGCGGATGACTCTTTTTTTTTCTTAGCGATCCTAGGGCGATCA']
 
 		print "test sequences = ", test_seqs
 
@@ -220,9 +195,9 @@ class dnaModel(object):
 
 		#print "CNN input \n", Z_test, len(Z_test)
 		#These predicts are spitting out nan's ... WHY?!?!?!
-		print "current model", self.model.predict(Z_test)
-		print "loaded model", load_model(self.filename).predict(Z_test)
-		print self.model.predict(Z_test)==load_model(self.filename).predict(Z_test)
+		print "current model", self.model.predict(Z_test).reshape(-1)
+		print "loaded model", load_model(self.filename).predict(Z_test).reshape(-1)
+		print self.model.predict(Z_test).reshape(-1)==load_model(self.filename).predict(Z_test).reshape(-1)
 
 
 
