@@ -69,26 +69,26 @@ class dnaModel(object):
 	""" An optimal CNN model for DNA sequences """
 
 	def __init__(self, input_file):
-		#The input_file should contain only two columns: sequence + output
-		#this should create a CNN/model object which can be trained,tested optimally (hyperparam opt)
-		#logging.basicConfig(filename='optseq.log',level=logging.DEBUG)
-		#logging.info("test")
+		"""The input_file should contain only two columns: sequence + expression
+		this should create a CNN/model object that is trained and tested optimally (hyperparam opt)"""
+
 		self.filename = ''
 		self.model, self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test, self.batch, self.epoch = \
 				self.__opt_model(input_file)
 		
 
-	###inits/bulids a new model and optimizes hyperparams
-	###trains/fits and saves hyperparams of training to dnaModel members
-	###currently a simple gridsearch, but should switch to a stochaistic 
-	###optimization alg with mean performance as the cost fcn
 	def __opt_model(self, input_file):
+		"""inits/bulids a new model and optimizes hyperparams
+		trains/fits and saves best model and params. 
+		Currently a simple gridsearch, but should switch to a stochaistic 
+		optimization alg with mean performance as the cost fcn """
+		
 		xtrain, ytrain, xtest, ytest = [], [], [], []
 
 		raw_data = pd.read_excel(input_file, header=0, parse_cols="A,B")
 		print raw_data.columns
 
-		###########  Cleaning output column  ###################
+		######  Cleaning nans out of output column ######
 		df = raw_data[np.isfinite(raw_data[u' expression'])]
 
 		############# Format NN inputs #############
@@ -102,20 +102,20 @@ class dnaModel(object):
 			X_data[indx] = self.__oneHotEncoder(seq)
 			indx += 1
 
-		# print "CNN input \n", X_data
-		# print "CNN output \n", Y_data
 
 		########## RANDOM TEST/TRAIN SPLIT #########
 		normed_out = preprocessing.StandardScaler().fit_transform(Y_data)
 		xtrain, xtest, ytrain, ytest = train_test_split(X_data, normed_out, test_size=0.15, random_state=42)
 
-		model = KerasRegressor(build_fn=create_model, nb_epoch=6, batch_size=128, verbose=1)
+		model = KerasRegressor(build_fn=create_model, nb_epoch=6, batch_size=128, verbose=0)
+
 		# define the grid search parameters
 		num_bases = [seq_len]
 		learn_rate = [0.001]
 		neurons = [(seq_len/8),(seq_len/4),(seq_len/2)]
 		#momentum = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9]
 		param_grid = dict(learn_rate=learn_rate, neurons=neurons, seq_len = num_bases)#, momentum=momentum)
+
 		#specify my own scorer for GridSearchCV that uses r2 instead of the estimator's scorer
 		#try RandomizedSearchCV instead of GridSearchCV
 		grid = GridSearchCV(estimator=model, param_grid=param_grid, scoring=make_scorer(my_custom_r2_func, greater_is_better=True), n_jobs=1)
@@ -131,10 +131,9 @@ class dnaModel(object):
 		print("\n\nBest: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
 		print "\nBest Estimator = ", grid_result.best_estimator_
 
-		###########################################
-		############ TRYING SOMETHING #############
-		###########################################
-		#print "\n\n\ngrid best_estimator_ predict (xtest) = ",grid.best_estimator_.predict(xtest)
+		###################################################################################
+		############ Need to extract best params and make a new model with it #############
+		###################################################################################
 		best_params = grid_result.best_params_
 		tuned_model = create_model(best_params['learn_rate'], best_params['neurons'], best_params['seq_len'])
 		tuned_model.fit(xtrain, ytrain, batch_size=128, nb_epoch=6, verbose=1)
@@ -163,26 +162,29 @@ class dnaModel(object):
 				dec_seq += u'T'
 		return dec_seq
 
-	#### this just does a replicate fit with saved previous keras and dnaModel ... models
 	def __train(self):
+		""" loads model that was passed in at the cmdline and trains 
+		with input file instead of creating a new model """
 		return 0
 
 	def design(self):
+		""" outputs best region of dna sequence to mutate to des.txt 
+		default resolution is 3 mer, but can be specified as a cmdline param """
 		return 0
 
 	def save(self):
+		"""creates a HDF5 file of the current model and saves in cur dir"""
 		ts = time.time()
 		st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
 		self.filename = 'dnamodel'+st+'.h5'
-		self.model.save(self.filename)  # creates a HDF5 file 'my_model.h5'
+		self.model.save(self.filename)  
 		return 0
 
 	def test(self):
-		### this will move to test dir
-		### but for now just checking that a loaded .h5 file predicts the same thing
-		### as the original model predicts (before saving)
+		"""this will move to test dir but for now just checking that a loaded .h5 file 
+		predicts the same thing as the original model predicts (before saving)"""
+
 		test_seqs = [u'A'*self.seq_len, u'C'*self.seq_len, u'G'*self.seq_len, u'T'*self.seq_len]
-		#test_seqs = [u'GGGGACCAGGTGCCGTAAGTAGGTTAGTTTAGAGCTTGACGGGGAAAGCCGGCGAACGTGGCGAGAAAGGAAGGGAAGAAAGCGTTTTCATTTTTTTTTTTCCACCTAGCGGATGACTCTTTTTTTTTCTTAGCGATCCTAGGGCGATCA']
 
 		print "test sequences = ", test_seqs
 
@@ -193,8 +195,6 @@ class dnaModel(object):
 			Z_test[indx] = self.__oneHotEncoder(seq)
 			indx += 1
 
-		#print "CNN input \n", Z_test, len(Z_test)
-		#These predicts are spitting out nan's ... WHY?!?!?!
 		print "current model", self.model.predict(Z_test).reshape(-1)
 		print "loaded model", load_model(self.filename).predict(Z_test).reshape(-1)
 		print self.model.predict(Z_test).reshape(-1)==load_model(self.filename).predict(Z_test).reshape(-1)
