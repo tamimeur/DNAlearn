@@ -24,12 +24,9 @@ def main(input_file):
     #there has to be an option for a saved, pre-existing model (for iterating)
     dnaCNN = dm.dnaModel(input_file) 
     ### dnaCNN is now a model object with a CNN and training/testing data ###
-
-
-    # dnaCNN.compile()
-    ### when we compile the dnaCNN model it compiles ### 
+    ### it compiles ### 
     ### and trains (default my current hyperparams, but this should ###
-    ### eventually tune/optimize hyperparams) the CNN and sets a trained flag ### 
+    ### eventually tune/optimize hyperparams) the CNN ### 
     
     # dnaCNN.design()
     ### when we execute design (default maximizes col B), ###
@@ -41,5 +38,7 @@ def main(input_file):
     ### that way we can iterate without having to dl and reload ###
     ### the dnaModel. ###
 
-    #dnaCNN.save()
+    dnaCNN.save()
     ### BUT FOR NOW ... the last thing it does is output a saved model file. ###
+
+    dnaCNN.test()
