@@ -25,9 +25,18 @@ def main(input_file):
 
 
     #there has to be an option for a saved, pre-existing model (for iterating)
+
+    #maybe just read the whole thing and not parse_cols
     raw_data = pd.read_excel(input_file, header=0, parse_cols="A,B")
+    print len(raw_data.columns)
+    col_names = ['sequence']
+    for i in range(1, len(raw_data.columns)):
+        col_names.append('output'+str(i))
+    raw_data.columns = col_names
     print raw_data.columns
-    df = raw_data[np.isfinite(raw_data[u' expression'])]
+
+    #should do this for each column
+    df = raw_data[np.isfinite(raw_data['output1'])]
 
     dnaCNN = dm.dnaModel(df) 
     ### dnaCNN is now a model object with a CNN and training/testing data ###

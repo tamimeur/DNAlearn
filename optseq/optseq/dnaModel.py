@@ -86,13 +86,13 @@ class dnaModel(object):
 		# df = raw_data[np.isfinite(raw_data[u' expression'])]
 		df = self.df
 		############# Format NN inputs #############
-		seq_len = len(df[u' sequence'][0])
+		seq_len = len(df['sequence'][0])
 		X_data = np.empty([len(df),seq_len,4])
 		indx = 0
 
-		Y_data = np.array(df[[u' expression']])
+		Y_data = np.array(df[['output1']])
 
-		for seq in df[u' sequence']:
+		for seq in df['sequence']:
 			X_data[indx] = self.__oneHotEncoder(seq)
 			indx += 1
 
@@ -166,11 +166,11 @@ class dnaModel(object):
 		expected output (max at the top) - outputs this to a text file."""
 		print "Searching for max prom: "
 		df = self.df
-		print df[[u' expression']]
-		maxindx=df[[u' expression']].idxmax()
+		print df[['output1']]
+		maxindx=df[['output1']].idxmax()
 		print "TRUE max index ", maxindx
 		print "TRUE max value ", df.ix[maxindx]
-		print "TRUE max sequence ", df[[u' sequence']].ix[maxindx]
+		print "TRUE max sequence ", df[['sequence']].ix[maxindx]
 
 		return 0
 
