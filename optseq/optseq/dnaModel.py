@@ -10,8 +10,8 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn import preprocessing
 from sklearn.metrics import make_scorer
 import scipy.stats as stats
-import logging
 import datetime, time
+#import logging
 
 np.random.seed(1337)
 
@@ -26,7 +26,7 @@ np.random.seed(1337)
 #	batch size [32,64,128]
 #	epochs [5,10,15]
 def create_model(learn_rate=0.001, neurons = 1, seq_len=15):
-	########## Build CNN Model #############
+	"""Builds a parameterized CNN Model"""
 	cnn = Sequential()
 	cnn.add(Convolution1D(nb_filter=30,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
 	cnn.add(Dropout(0.1))
@@ -34,8 +34,6 @@ def create_model(learn_rate=0.001, neurons = 1, seq_len=15):
 
 	cnn.add(Flatten())
 
-	#this dense layer should be tuned to various percentages
-	#of the first input layer, like [(seq_len*2)/3, seq_len/3]
 	cnn.add(Dense(neurons))
 	cnn.add(Dropout(0.2))
 	cnn.add(Activation('relu'))
@@ -45,39 +43,35 @@ def create_model(learn_rate=0.001, neurons = 1, seq_len=15):
 
 	#compile the model
 	adam = Adam(lr=learn_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-	#model.compile(loss='mean_squared_error', optimizer=adam)
 	rms = RMSprop(lr=learn_rate, rho=0.9, epsilon=1e-08)
 
-	#optimizer, lr, and momeuntum should be tuned
-	#need a custom metric (r^2 methinks)
-	cnn.compile(loss='mean_squared_error', optimizer=adam)#, metrics=['accuracy'])
-	#cnn.compile(loss='mean_squared_logarithmic_error', optimizer=rms)#, metrics=['accuracy'])
-	#print 'Model compiled in {0} seconds'.format(time.time() - start_time)
+	cnn.compile(loss='mean_squared_error', optimizer=adam)
+
 	return cnn
 
 def my_custom_r2_func(ground_truth, predictions):
-	#print "Predictions ", predictions.reshape(-1)
 	slope, intercept, r_value, p_value, std_err = stats.linregress(ground_truth.reshape(-1),predictions.reshape(-1))
 	print "Evaluating a model meow: ", r_value**2
 	return r_value**2
-	# diff = np.abs(ground_truth - predictions).max()
-	# return np.log(1 + diff)
+	
+
 
 
 
 class dnaModel(object):
 	""" An optimal CNN model for DNA sequences """
 
-	def __init__(self, input_file):
-		"""The input_file should contain only two columns: sequence + expression
+	def __init__(self, df):
+		"""The input df should contain only two columns: sequence + expression
 		this should create a CNN/model object that is trained and tested optimally (hyperparam opt)"""
 
 		self.filename = ''
+		self.df = df
 		self.model, self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test, self.batch, self.epoch = \
-				self.__opt_model(input_file)
+				self.__opt_model()
 		
 
-	def __opt_model(self, input_file):
+	def __opt_model(self):
 		"""inits/bulids a new model and optimizes hyperparams
 		trains/fits and saves best model and params. 
 		Currently a simple gridsearch, but should switch to a stochaistic 
@@ -85,20 +79,20 @@ class dnaModel(object):
 		
 		xtrain, ytrain, xtest, ytest = [], [], [], []
 
-		raw_data = pd.read_excel(input_file, header=0, parse_cols="A,B")
-		print raw_data.columns
+		# raw_data = pd.read_excel(input_file, header=0, parse_cols="A,B")
+		# print raw_data.columns
 
 		######  Cleaning nans out of output column ######
-		df = raw_data[np.isfinite(raw_data[u' expression'])]
-
+		# df = raw_data[np.isfinite(raw_data[u' expression'])]
+		df = self.df
 		############# Format NN inputs #############
-		seq_len = len(df['sequence'][0])
+		seq_len = len(df[u' sequence'][0])
 		X_data = np.empty([len(df),seq_len,4])
 		indx = 0
 
 		Y_data = np.array(df[[u' expression']])
 
-		for seq in df[u'sequence']:
+		for seq in df[u' sequence']:
 			X_data[indx] = self.__oneHotEncoder(seq)
 			indx += 1
 
@@ -163,17 +157,25 @@ class dnaModel(object):
 		return dec_seq
 
 	def __train(self):
-		""" loads model that was passed in at the cmdline and trains 
-		with input file instead of creating a new model """
+		"""loads model that was passed in at the cmdline and trains 
+		with input file instead of creating a new model"""
 		return 0
 
 	def design(self):
-		""" outputs best region of dna sequence to mutate to des.txt 
-		default resolution is 3 mer, but can be specified as a cmdline param """
+		"""Returns a batch (list) of designs to test (default size = input len), ordered by
+		expected output (max at the top) - outputs this to a text file."""
+		print "Searching for max prom: "
+		df = self.df
+		print df[[u' expression']]
+		maxindx=df[[u' expression']].idxmax()
+		print "TRUE max index ", maxindx
+		print "TRUE max value ", df.ix[maxindx]
+		print "TRUE max sequence ", df[[u' sequence']].ix[maxindx]
+
 		return 0
 
 	def save(self):
-		"""creates a HDF5 file of the current model and saves in cur dir"""
+		"""creates HDF5 file of the current model and saves in cur dir"""
 		ts = time.time()
 		st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
 		self.filename = 'dnamodel'+st+'.h5'
@@ -185,8 +187,6 @@ class dnaModel(object):
 		predicts the same thing as the original model predicts (before saving)"""
 
 		test_seqs = [u'A'*self.seq_len, u'C'*self.seq_len, u'G'*self.seq_len, u'T'*self.seq_len]
-
-		print "test sequences = ", test_seqs
 
 		##### format test sequences as CNN input for prediction ####
 		Z_test = np.empty([len(test_seqs),self.seq_len,4])
