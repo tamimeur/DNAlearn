@@ -61,29 +61,25 @@ def my_custom_r2_func(ground_truth, predictions):
 class dnaModel(object):
 	""" An optimal CNN model for DNA sequences """
 
-	def __init__(self, df):
+	def __init__(self, df, filename = ''):
 		"""The input df should contain only two columns: sequence + expression
 		this should create a CNN/model object that is trained and tested optimally (hyperparam opt)"""
 
-		self.filename = ''
+		self.filename = filename
 		self.df = df
-		self.model, self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test, self.batch, self.epoch = \
-				self.__opt_model()
+		self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test = self.__parse_input()
 		
-
-	def __opt_model(self):
-		"""inits/bulids a new model and optimizes hyperparams
-		trains/fits and saves best model and params. 
-		Currently a simple gridsearch, but should switch to a stochaistic 
-		optimization alg with mean performance as the cost fcn """
+		if filename:
+			print "Loading model: ", filename
+			self.model = load_model(self.filename)
+			self.__train()
+		else:
+			print "Making model: ", filename
+			self.model = self.__opt_model()
 		
+	def __parse_input(self):
 		xtrain, ytrain, xtest, ytest = [], [], [], []
 
-		# raw_data = pd.read_excel(input_file, header=0, parse_cols="A,B")
-		# print raw_data.columns
-
-		######  Cleaning nans out of output column ######
-		# df = raw_data[np.isfinite(raw_data[u' expression'])]
 		df = self.df
 		############# Format NN inputs #############
 		seq_len = len(df['sequence'][0])
@@ -100,6 +96,16 @@ class dnaModel(object):
 		########## RANDOM TEST/TRAIN SPLIT #########
 		normed_out = preprocessing.StandardScaler().fit_transform(Y_data)
 		xtrain, xtest, ytrain, ytest = train_test_split(X_data, normed_out, test_size=0.15, random_state=42)
+
+		return seq_len, xtrain, ytrain, xtest, ytest
+
+	def __opt_model(self):
+		"""inits/bulids a new model and optimizes hyperparams
+		trains/fits and saves best model and params. 
+		Currently a simple gridsearch, but should switch to a stochaistic 
+		optimization alg with mean performance as the cost fcn """
+		
+		seq_len, xtrain, ytrain, xtest, ytest = self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test
 
 		model = KerasRegressor(build_fn=create_model, nb_epoch=6, batch_size=128, verbose=0)
 
@@ -136,8 +142,8 @@ class dnaModel(object):
 		print "PREDICTED: ", len(predicted)
 		slope, intercept, r_value, p_value, std_err = stats.linregress(ytest.reshape(-1),predicted.reshape(-1))
 		print "R2 of tuned_model: ", r_value**2
-
-		return tuned_model, seq_len, xtrain, ytrain, xtest, ytest, 128, 6
+		return tuned_model
+		#return tuned_model, seq_len, xtrain, ytrain, xtest, ytest, 128, 6
 
 	def __oneHotEncoder(self,seq):
 		base_dict = {u'A':[1,0,0,0],u'C':[0,1,0,0],u'G':[0,0,1,0],u'T':[0,0,0,1]}
@@ -159,6 +165,22 @@ class dnaModel(object):
 	def __train(self):
 		"""loads model that was passed in at the cmdline and trains 
 		with input file instead of creating a new model"""
+		
+		self.model.fit(self.X_train, self.Y_train, batch_size=128, nb_epoch=6, verbose=1)
+		predicted = self.model.predict(self.X_test) #.reshape(-1)
+		print "NORMED TEST: ", len(self.Y_test)
+		print "PREDICTED: ", len(predicted)
+		slope, intercept, r_value, p_value, std_err = stats.linregress(self.Y_test.reshape(-1),predicted.reshape(-1))
+		print "R2 of tuned_model: ", r_value**2
+		self.save()
+		return 0
+
+	def save(self):
+		"""creates HDF5 file of the current model and saves in cur dir"""
+		ts = time.time()
+		st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
+		self.filename = 'dnamodel'+st+'.h5'
+		self.model.save(self.filename)  
 		return 0
 
 	def design(self):
@@ -172,14 +194,51 @@ class dnaModel(object):
 		print "TRUE max value ", df.ix[maxindx]
 		print "TRUE max sequence ", df[['sequence']].ix[maxindx]
 
-		return 0
+		#set some epsilon=<some small number> 
+		#this will determine if optimization has saturated yet or not
+		#continue generations until either epsilon or 50 generations is reached
+		#(whichever comes first)
+		new_seqs_list = []
+		start_seq = df[['sequence']].ix[maxindx]
 
-	def save(self):
-		"""creates HDF5 file of the current model and saves in cur dir"""
-		ts = time.time()
-		st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
-		self.filename = 'dnamodel'+st+'.h5'
-		self.model.save(self.filename)  
+		bases = [u'A',u'C',u'G',u'T']
+		num_gen = 10
+
+		
+		for gen in range(0,num_gen):
+			print "===== GENERATION ", gen, " ====="
+
+			#taking max sequence from input data and mutating
+			#to get 200 new sequences
+			for j in range(0,200):
+				base_idx = np.random.randint(0,self.seq_len-4)
+				new_seq = list(start_seq)
+				new_seq[base_idx] = np.random.choice(bases)
+				new_seq[base_idx+1] = np.random.choice(bases)
+				new_seq[base_idx+2] = np.random.choice(bases)
+				strnew_seq = "".join(new_seq)
+				if df.loc[df[u'sequence'] == strnew_seq].empty:
+					new_seqs_list.append(strnew_seq)
+			print "New Sequences length", len(new_seqs_list)
+
+			#format new sequences as CNN input for prediction
+			Ztest = np.empty([len(new_seqs_list),self.seq_len,4])
+			indx = 0
+			for s in new_seqs_list:
+				Ztest[indx] = self.__oneHotEncoder(s)
+				indx += 1
+
+			#CNN predicition
+			Zpredicted = self.model.predict(Ztest)
+			max_predicted_seq = new_seqs_list[Zpredicted.argmax()]
+			print "Max output of new designs = ", max(Zpredicted)
+			print "Sequence of max pred = ", max_predicted_seq
+			#might want to save all these mutated seqs instead of just 
+			#keeping the max one, each generation
+			new_seqs_list = []
+			start_seq = max_predicted_seq
+		print "Build this sequence: ", max_predicted_seq, "to get this output: ", max(Zpredicted)
+
 		return 0
 
 	def test(self):

@@ -12,22 +12,16 @@ all_colors = 'black', 'red', 'green', 'yellow', 'blue', 'magenta', \
 
 @click.command()
 @click.argument('input_file')
-#@click.option('--max', type=click.File('rb'), help='Maximize the last column in the input file')
-#@click.option('--min', '-c', type=click.File('rb'), help='Minimize the last column in the input file')
+@click.option('--model', '-m', type=click.Path(), help='An existing dnamodel .h5 file')
 
 
-def main(input_file):
+def main(input_file, model):
     """Automated, experimentally-driven design and optimization of DNA sequences."""
     greet = 'Hello'
-    #click.echo(click.style('{0}, {1}'.format(greet, 'OptSeq users!'), fg='blue', blink=False))
-    #click.echo(input_file)
     print input_file
 
 
-    #there has to be an option for a saved, pre-existing model (for iterating)
-
-    #maybe just read the whole thing and not parse_cols
-    raw_data = pd.read_excel(input_file, header=0, parse_cols="A,B")
+    raw_data = pd.read_excel(input_file, header=0)
     print len(raw_data.columns)
     col_names = ['sequence']
     for i in range(1, len(raw_data.columns)):
@@ -38,7 +32,7 @@ def main(input_file):
     #should do this for each column
     df = raw_data[np.isfinite(raw_data['output1'])]
 
-    dnaCNN = dm.dnaModel(df) 
+    dnaCNN = dm.dnaModel(df, filename=model) 
     ### dnaCNN is now a model object with a CNN and training/testing data ###
     ### it compiles ### 
     ### and trains (default my current hyperparams, but this should ###
@@ -49,14 +43,10 @@ def main(input_file):
     ### it returns a set (default some percentage of the input data) ###
     ### of new designs to test (default cheap). ###
 
-    ### I should get this to work with a database, so that ###
-    ### models are stored, saved, and updated in the db, that ###
-    ### that way we can iterate without having to dl and reload ###
-    ### the dnaModel. ###
 
     dnaCNN.save()
     ### BUT FOR NOW ... the last thing it does is output a saved model file. ###
 
     dnaCNN.test()
 
-    dnaCNN.design()
+    #dnaCNN.design()
