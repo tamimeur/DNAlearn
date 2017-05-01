@@ -6,3 +6,11 @@ DNAlearn builds and tunes an optimal convolutional neural network (CNN) to model
 
 ## Installation
 	pip install dnalearn
+
+## Usage
+DNAlearn requires an input xlsx file of DNA sequencing data with the following structure:
+
+| Sequences     | Output        |
+| ------------- |:-------------:|
+| actgactg ...  | 3 |
+| actgactg ...  | 5      |
