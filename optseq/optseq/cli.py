@@ -37,6 +37,7 @@ def main(input_file, model):
     ### it compiles ### 
     ### and trains (default my current hyperparams, but this should ###
     ### eventually tune/optimize hyperparams) the CNN ### 
+    dnaCNN.train()
     
     dnaCNN.design()
     ### when we execute design (default maximizes col B), ###

@@ -68,14 +68,8 @@ class dnaModel(object):
 		self.filename = filename
 		self.df = df
 		self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test = self.__parse_input()
-		
-		if filename:
-			print "Loading model: ", filename
-			self.model = load_model(self.filename)
-			self.predicted = self.__train()
-		else:
-			print "Making model: ", filename
-			self.model, self.predicted = self.__opt_model()
+		self.model = Sequential()
+		self.predicted = []
 		
 	def __parse_input(self):
 		xtrain, ytrain, xtest, ytest = [], [], [], []
@@ -162,10 +156,7 @@ class dnaModel(object):
 				dec_seq += u'T'
 		return dec_seq
 
-	def __train(self):
-		"""loads model that was passed in at the cmdline and trains 
-		with input file instead of creating a new model"""
-		
+	def __retrain(self):
 		self.model.fit(self.X_train, self.Y_train, batch_size=128, nb_epoch=6, verbose=1)
 		predicted = self.model.predict(self.X_test) #.reshape(-1)
 		print "NORMED TEST: ", len(self.Y_test)
@@ -174,6 +165,20 @@ class dnaModel(object):
 		print "R2 of tuned_model: ", r_value**2
 		self.save()
 		return predicted
+
+	def train(self):
+		"""loads model that was passed in at the cmdline and trains 
+		with input file instead of creating a new model"""
+
+		if self.filename:
+			print "Loading model: ", self.filename
+			self.model = load_model(self.filename)
+			self.predicted = self.__retrain()
+		else:
+			print "Making model. "
+			self.model, self.predicted = self.__opt_model()
+		
+		
 
 	def save(self):
 		"""creates HDF5 file of the current model and saves in cur dir"""
