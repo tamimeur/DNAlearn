@@ -12,17 +12,17 @@ DNAlearn requires an input xlsx file of DNA sequencing data with the following s
 
 Example:
 
-	| Sequences     | Output        |
-	| ------------- |:-------------:|
-	| actgactg ...  | 3      |
-	| actgactg ...  | 5      |
+| Sequences     | Output        |
+| ------------- |:-------------:|
+| actgactg ...  | 3      |
+| actgactg ...  | 5      |
 
 
 
 To generate a new model using the command line interface:
 
-	DNAlearn input.xlsx
+	dnalearn input.xlsx
 
 To retrain a previously generated model using the command line interface:
 
-	DNAlearn input.xlsx -m model.h5
+	dnalearn input.xlsx -m model.h5
