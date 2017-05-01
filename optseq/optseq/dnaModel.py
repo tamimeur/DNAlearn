@@ -233,8 +233,8 @@ class dnaModel(object):
 			#CNN predicition
 			Zpredicted = self.model.predict(Ztest)
 			max_predicted_seq = new_seqs_list[Zpredicted.argmax()]
-			print "Max output of new designs = ", max(Zpredicted)
-			print "Sequence of max pred = ", max_predicted_seq
+			#print "Max output of new designs = ", max(Zpredicted)
+			#print "Sequence of max pred = ", max_predicted_seq
 			#might want to save all these mutated seqs instead of just 
 			#keeping the max one, each generation
 			new_seqs_list = []

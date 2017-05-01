@@ -8,6 +8,8 @@ setup(name='optseq',
       author_email='tamimeur@gmail.com',
       license='MIT',
       packages=['optseq'],
+      test_suite='nose.collector',
+      tests_require=['nose'],
       zip_safe=False,
       entry_points={
         'console_scripts': [
