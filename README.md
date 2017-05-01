@@ -4,7 +4,5 @@ DNAlearn is a recommender system for DNA sequence optimization. Users who want t
 
 DNAlearn builds and tunes an optimal convolutional neural network (CNN) to model DNA sequencing data. Using this model, DNAlearn recommends an optimized sequence - predicted to maximize experimental output. 
 
-To use:
-    ```DNAlearn input.xlsx
-    ```
-	
+## Installation
+	pip install dnalearn
