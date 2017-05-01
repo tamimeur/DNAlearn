@@ -38,7 +38,7 @@ def main(input_file, model):
     ### and trains (default my current hyperparams, but this should ###
     ### eventually tune/optimize hyperparams) the CNN ### 
     
-    # dnaCNN.design()
+    dnaCNN.design()
     ### when we execute design (default maximizes col B), ###
     ### it returns a set (default some percentage of the input data) ###
     ### of new designs to test (default cheap). ###

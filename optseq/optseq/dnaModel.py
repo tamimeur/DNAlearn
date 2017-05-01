@@ -72,10 +72,10 @@ class dnaModel(object):
 		if filename:
 			print "Loading model: ", filename
 			self.model = load_model(self.filename)
-			self.__train()
+			self.predicted = self.__train()
 		else:
 			print "Making model: ", filename
-			self.model = self.__opt_model()
+			self.model, self.predicted = self.__opt_model()
 		
 	def __parse_input(self):
 		xtrain, ytrain, xtest, ytest = [], [], [], []
@@ -142,7 +142,7 @@ class dnaModel(object):
 		print "PREDICTED: ", len(predicted)
 		slope, intercept, r_value, p_value, std_err = stats.linregress(ytest.reshape(-1),predicted.reshape(-1))
 		print "R2 of tuned_model: ", r_value**2
-		return tuned_model
+		return tuned_model, predicted
 		#return tuned_model, seq_len, xtrain, ytrain, xtest, ytest, 128, 6
 
 	def __oneHotEncoder(self,seq):
@@ -173,7 +173,7 @@ class dnaModel(object):
 		slope, intercept, r_value, p_value, std_err = stats.linregress(self.Y_test.reshape(-1),predicted.reshape(-1))
 		print "R2 of tuned_model: ", r_value**2
 		self.save()
-		return 0
+		return predicted
 
 	def save(self):
 		"""creates HDF5 file of the current model and saves in cur dir"""
@@ -188,18 +188,20 @@ class dnaModel(object):
 		expected output (max at the top) - outputs this to a text file."""
 		print "Searching for max prom: "
 		df = self.df
-		print df[['output1']]
+		#print df[['output1']]
 		maxindx=df[['output1']].idxmax()
-		print "TRUE max index ", maxindx
-		print "TRUE max value ", df.ix[maxindx]
-		print "TRUE max sequence ", df[['sequence']].ix[maxindx]
+		# print "TRUE max index ", maxindx
+		# print "TRUE max value ", df.ix[maxindx]
+		# print "TRUE max sequence ", df[['sequence']].ix[maxindx]
+
 
 		#set some epsilon=<some small number> 
 		#this will determine if optimization has saturated yet or not
 		#continue generations until either epsilon or 50 generations is reached
 		#(whichever comes first)
 		new_seqs_list = []
-		start_seq = df[['sequence']].ix[maxindx]
+		start_seq = self.__oneHotDecoder(self.X_test[self.predicted.argmax()])
+		print "Max seq is: ", start_seq
 
 		bases = [u'A',u'C',u'G',u'T']
 		num_gen = 10
