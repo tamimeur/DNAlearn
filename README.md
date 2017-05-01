@@ -10,7 +10,14 @@ DNAlearn builds and tunes an optimal convolutional neural network (CNN) to model
 ## Usage
 DNAlearn requires an input xlsx file of DNA sequencing data with the following structure:
 
+Example:
 | Sequences     | Output        |
 | ------------- |:-------------:|
 | actgactg ...  | 3 |
 | actgactg ...  | 5      |
+
+To generate a new model using the command line interface:
+	DNAlearn input.xlsx
+
+To retrain a previously generated model using the command line interface:
+	DNAlearn input.xlsx -m model.h5
