@@ -13,8 +13,10 @@ DNAlearn requires an input xlsx file of DNA sequencing data with the following s
 Example:
 | Sequences     | Output        |
 | ------------- |:-------------:|
-| actgactg ...  | 3 |
+| actgactg ...  | 3      |
 | actgactg ...  | 5      |
+
+
 
 To generate a new model using the command line interface:
 	DNAlearn input.xlsx
