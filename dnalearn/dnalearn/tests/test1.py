@@ -1,5 +1,5 @@
 from unittest import TestCase
-import optseq.dnamodel as dm
+import dnalearn.dnamodel as dm
 import pandas as pd
 import numpy as np
 import os
