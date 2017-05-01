@@ -11,7 +11,6 @@ from sklearn import preprocessing
 from sklearn.metrics import make_scorer
 import scipy.stats as stats
 import datetime, time
-#import logging
 
 np.random.seed(1337)
 
@@ -51,7 +50,7 @@ def create_model(learn_rate=0.001, neurons = 1, seq_len=15):
 
 def my_custom_r2_func(ground_truth, predictions):
 	slope, intercept, r_value, p_value, std_err = stats.linregress(ground_truth.reshape(-1),predictions.reshape(-1))
-	print "Evaluating a model meow: ", r_value**2
+	print "..."
 	return r_value**2
 	
 
@@ -62,8 +61,8 @@ class dnaModel(object):
 	""" An optimal CNN model for DNA sequences """
 
 	def __init__(self, df, filename = ''):
-		"""The input df should contain only two columns: sequence + expression
-		this should create a CNN/model object that is trained and tested optimally (hyperparam opt)"""
+		"""Initialize dnaModel object
+		The input df should contain only two columns: sequence + expression"""
 
 		self.filename = filename
 		self.df = df
@@ -72,6 +71,7 @@ class dnaModel(object):
 		self.predicted = []
 		
 	def __parse_input(self):
+		""" Splits training and test data from the input dataframe """
 		xtrain, ytrain, xtest, ytest = [], [], [], []
 
 		df = self.df
@@ -94,7 +94,7 @@ class dnaModel(object):
 		return seq_len, xtrain, ytrain, xtest, ytest
 
 	def __opt_model(self):
-		"""inits/bulids a new model and optimizes hyperparams
+		"""bulids a new model and optimizes hyperparams
 		trains/fits and saves best model and params. 
 		Currently a simple gridsearch, but should switch to a stochaistic 
 		optimization alg with mean performance as the cost fcn """
@@ -107,8 +107,7 @@ class dnaModel(object):
 		num_bases = [seq_len]
 		learn_rate = [0.001]
 		neurons = [(seq_len/8),(seq_len/4),(seq_len/2)]
-		#momentum = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9]
-		param_grid = dict(learn_rate=learn_rate, neurons=neurons, seq_len = num_bases)#, momentum=momentum)
+		param_grid = dict(learn_rate=learn_rate, neurons=neurons, seq_len = num_bases)
 
 		#specify my own scorer for GridSearchCV that uses r2 instead of the estimator's scorer
 		#try RandomizedSearchCV instead of GridSearchCV
@@ -131,13 +130,11 @@ class dnaModel(object):
 		best_params = grid_result.best_params_
 		tuned_model = create_model(best_params['learn_rate'], best_params['neurons'], best_params['seq_len'])
 		tuned_model.fit(xtrain, ytrain, batch_size=128, nb_epoch=6, verbose=1)
-		predicted = tuned_model.predict(xtest) #.reshape(-1)
-		print "NORMED TEST: ", len(ytest)
-		print "PREDICTED: ", len(predicted)
+		predicted = tuned_model.predict(xtest)
+
 		slope, intercept, r_value, p_value, std_err = stats.linregress(ytest.reshape(-1),predicted.reshape(-1))
 		print "R2 of tuned_model: ", r_value**2
 		return tuned_model, predicted
-		#return tuned_model, seq_len, xtrain, ytrain, xtest, ytest, 128, 6
 
 	def __oneHotEncoder(self,seq):
 		base_dict = {u'A':[1,0,0,0],u'C':[0,1,0,0],u'G':[0,0,1,0],u'T':[0,0,0,1]}
@@ -157,18 +154,18 @@ class dnaModel(object):
 		return dec_seq
 
 	def __retrain(self):
+		""" trains existing model """
 		self.model.fit(self.X_train, self.Y_train, batch_size=128, nb_epoch=6, verbose=1)
-		predicted = self.model.predict(self.X_test) #.reshape(-1)
-		print "NORMED TEST: ", len(self.Y_test)
-		print "PREDICTED: ", len(predicted)
+		predicted = self.model.predict(self.X_test)
 		slope, intercept, r_value, p_value, std_err = stats.linregress(self.Y_test.reshape(-1),predicted.reshape(-1))
-		print "R2 of tuned_model: ", r_value**2
+		print "R2 of trained model: ", r_value**2
 		self.save()
 		return predicted
 
 	def train(self):
-		"""loads model that was passed in at the cmdline and trains 
-		with input file instead of creating a new model"""
+		"""trains the current model, if a model filename exists.
+		if it doesn't exist, then it builds an optimal model first
+		by calling __opt_model which then trains that model"""
 
 		if self.filename:
 			print "Loading model: ", self.filename
@@ -189,24 +186,23 @@ class dnaModel(object):
 		return 0
 
 	def design(self):
-		"""Returns a batch (list) of designs to test (default size = input len), ordered by
+		""" Currently returns a single optimized DNA sequence.
+
+		TO DO: Returns a batch (list) of designs to test (default size = input len), ordered by
 		expected output (max at the top) - outputs this to a text file."""
-		print "Searching for max prom: "
+
+		
 		df = self.df
-		#print df[['output1']]
 		maxindx=df[['output1']].idxmax()
-		# print "TRUE max index ", maxindx
-		# print "TRUE max value ", df.ix[maxindx]
-		# print "TRUE max sequence ", df[['sequence']].ix[maxindx]
+		
 
 
-		#set some epsilon=<some small number> 
+		#To DO: set some epsilon=<some small number> 
 		#this will determine if optimization has saturated yet or not
 		#continue generations until either epsilon or 50 generations is reached
 		#(whichever comes first)
 		new_seqs_list = []
 		start_seq = self.__oneHotDecoder(self.X_test[self.predicted.argmax()])
-		print "Max seq is: ", start_seq
 
 		bases = [u'A',u'C',u'G',u'T']
 		num_gen = 10
@@ -226,7 +222,7 @@ class dnaModel(object):
 				strnew_seq = "".join(new_seq)
 				if df.loc[df[u'sequence'] == strnew_seq].empty:
 					new_seqs_list.append(strnew_seq)
-			print "New Sequences length", len(new_seqs_list)
+			
 
 			#format new sequences as CNN input for prediction
 			Ztest = np.empty([len(new_seqs_list),self.seq_len,4])
@@ -238,13 +234,12 @@ class dnaModel(object):
 			#CNN predicition
 			Zpredicted = self.model.predict(Ztest)
 			max_predicted_seq = new_seqs_list[Zpredicted.argmax()]
-			#print "Max output of new designs = ", max(Zpredicted)
-			#print "Sequence of max pred = ", max_predicted_seq
-			#might want to save all these mutated seqs instead of just 
+			
+			#TO DO: might want to save all these mutated seqs instead of just 
 			#keeping the max one, each generation
 			new_seqs_list = []
 			start_seq = max_predicted_seq
-		print "Build this sequence: ", max_predicted_seq, "to get this output: ", max(Zpredicted)
+		print "\n\nBuild this sequence: ", max_predicted_seq, "to get this output: ", max(Zpredicted)
 
 		return 0
 
@@ -261,9 +256,9 @@ class dnaModel(object):
 			Z_test[indx] = self.__oneHotEncoder(seq)
 			indx += 1
 
-		print "current model", self.model.predict(Z_test).reshape(-1)
-		print "loaded model", load_model(self.filename).predict(Z_test).reshape(-1)
-		print self.model.predict(Z_test).reshape(-1)==load_model(self.filename).predict(Z_test).reshape(-1)
+		#print "current model", self.model.predict(Z_test).reshape(-1)
+		#print "loaded model", load_model(self.filename).predict(Z_test).reshape(-1)
+		#print self.model.predict(Z_test).reshape(-1)==load_model(self.filename).predict(Z_test).reshape(-1)
 
 
 
