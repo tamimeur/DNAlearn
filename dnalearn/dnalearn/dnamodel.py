@@ -11,6 +11,8 @@ from sklearn import preprocessing
 from sklearn.metrics import make_scorer
 import scipy.stats as stats
 import datetime, time
+import json
+
 
 np.random.seed(1337)
 
@@ -24,18 +26,23 @@ np.random.seed(1337)
 #	filter lengths [(seq_len/50),(seq_len/25),(seq_len/12),(seq_len/6),(seq_len/3)]
 #	batch size [32,64,128]
 #	epochs [5,10,15]
-def create_model(learn_rate=0.001, neurons = 1, seq_len=15):
+def create_model(learn_rate=0.001, filter_batch = 30, filter_len = 6, dense1_neurons = 1, dense2_neurons = 0, loss = 0,optimizer = 0, seq_len=15):
 	"""Builds a parameterized CNN Model"""
 	cnn = Sequential()
-	cnn.add(Convolution1D(nb_filter=30,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
+	cnn.add(Convolution1D(nb_filter=filter_batch,filter_length=filter_len,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
 	cnn.add(Dropout(0.1))
-	cnn.add(Convolution1D(nb_filter=40,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
+	cnn.add(Convolution1D(nb_filter=filter_batch,filter_length=filter_len,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
 
 	cnn.add(Flatten())
 
-	cnn.add(Dense(neurons))
+	cnn.add(Dense(dense1_neurons))
 	cnn.add(Dropout(0.2))
 	cnn.add(Activation('relu'))
+
+	if dense2_neurons > 0:
+		cnn.add(Dense(dense2_neurons))
+		cnn.add(Dropout(0.2))
+		cnn.add(Activation('relu'))
 
 	cnn.add(Dense(1))
 	cnn.add(Activation('linear'))
@@ -44,7 +51,20 @@ def create_model(learn_rate=0.001, neurons = 1, seq_len=15):
 	adam = Adam(lr=learn_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 	rms = RMSprop(lr=learn_rate, rho=0.9, epsilon=1e-08)
 
-	cnn.compile(loss='mean_squared_error', optimizer=adam)
+	if loss == 0:
+		loss_type = 'mean_squared_error'
+	elif loss == 1:
+		loss_type = 'mean_squared_logarithmic_error'
+	elif loss == 2:
+		loss_type = 'poisson'
+
+	#cnn.compile(loss='mean_squared_error', optimizer=adam)
+	if optimizer == 0:
+		cnn.compile(loss=loss_type, optimizer=rms)
+	elif optimizer == 1:
+		cnn.compile(loss=loss_type, optimizer='adam')
+	elif optimizer == 2:
+		cnn.compile(loss=loss_type, optimizer='sgd')
 
 	return cnn
 
@@ -60,11 +80,12 @@ def my_custom_r2_func(ground_truth, predictions):
 class dnaModel(object):
 	""" An optimal CNN model for DNA sequences """
 
-	def __init__(self, df, filename = ''):
+	def __init__(self, df, filename = '', config = ''):
 		"""Initialize dnaModel object
 		The input df should contain only two columns: sequence + expression"""
 
 		self.filename = filename
+		self.config = config
 		self.df = df
 		self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test = self.__parse_input()
 		self.model = Sequential()
@@ -102,12 +123,45 @@ class dnaModel(object):
 		seq_len, xtrain, ytrain, xtest, ytest = self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test
 
 		model = KerasRegressor(build_fn=create_model, nb_epoch=6, batch_size=128, verbose=0)
+		num_bases = [seq_len]
 
 		# define the grid search parameters
-		num_bases = [seq_len]
 		learn_rate = [0.001]
-		neurons = [(seq_len/8),(seq_len/4),(seq_len/2)]
-		param_grid = dict(learn_rate=learn_rate, neurons=neurons, seq_len = num_bases)
+		dense1_neurons = [(seq_len/8),(seq_len/4),(seq_len/2)]
+		dense2_neurons = [0]
+		filter_batch = [30]
+		filter_len = [6]
+		loss = [0]
+		optimizer = [0]
+
+
+		if self.config:
+			print "Using config file.\n"
+			with open(self.config) as data_file:
+				config_data = json.load(data_file)
+				for key in config_data:
+					print key
+					if key == "lr":
+						learn_rate = config_data[key]
+					elif key == "dense1_neurons":
+						dense1_neurons = config_data[key]
+					elif key == "dense2_neurons":
+						dense2_neurons = config_data[key]
+					elif key == "filter_batch":
+						filter_batch = config_data[key]
+					elif key == "filter_len":
+						filter_len = config_data[key]
+					elif key == "loss":
+						loss = config_data[key]
+					elif key == "optimizer":
+						optimizer = config_data[key]
+				# learn_rate = config_data["lr"]
+				# print "learn_rate is ", learn_rate
+
+
+		
+		
+		param_grid = dict(learn_rate=learn_rate, dense1_neurons=dense1_neurons, dense2_neurons=dense2_neurons, filter_batch=filter_batch, filter_len=filter_len, loss=loss, optimizer=optimizer, seq_len = num_bases)
 
 		#specify my own scorer for GridSearchCV that uses r2 instead of the estimator's scorer
 		#try RandomizedSearchCV instead of GridSearchCV
@@ -128,7 +182,8 @@ class dnaModel(object):
 		############ Need to extract best params and make a new model with it #############
 		###################################################################################
 		best_params = grid_result.best_params_
-		tuned_model = create_model(best_params['learn_rate'], best_params['neurons'], best_params['seq_len'])
+		#learn_rate=0.001, filter_batch = 30, filter_len = 6, dense1_neurons = 1, dense2_neurons = 0, loss = 0,optimizer = 0, seq_len=15
+		tuned_model = create_model(best_params['learn_rate'], best_params['filter_batch'], best_params['filter_len'], best_params['dense1_neurons'], best_params['dense2_neurons'], best_params['loss'], best_params['optimizer'], best_params['seq_len'])
 		tuned_model.fit(xtrain, ytrain, batch_size=128, nb_epoch=6, verbose=1)
 		predicted = tuned_model.predict(xtest)
 

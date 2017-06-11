@@ -13,9 +13,10 @@ all_colors = 'black', 'red', 'green', 'yellow', 'blue', 'magenta', \
 @click.command()
 @click.argument('input_file')
 @click.option('--model', '-m', type=click.Path(), help='An existing dnamodel .h5 file')
+@click.option('--config', '-c', type=click.Path(), help='A json configuration file')
 
 
-def main(input_file, model):
+def main(input_file, model, config):
     """Automated, experimentally-driven design and optimization of DNA sequences."""
     greet = 'Hello'
 
@@ -31,7 +32,7 @@ def main(input_file, model):
     #TO DO: should do this for each column
     df = raw_data[np.isfinite(raw_data['output1'])]
 
-    dnaCNN = dm.dnaModel(df, filename=model) 
+    dnaCNN = dm.dnaModel(df, filename=model, config = config) 
     
     dnaCNN.train()
     
