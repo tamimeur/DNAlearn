@@ -5,7 +5,5 @@
 	"dense1_neurons": [50,90],
 	"dense2_neurons": [0,10],
 	"filter_batch": [20],
-	"filter_len": [6,10],
-	"batch_size": [16],
-	"epochs": [10]
+	"filter_len": [6,10]
 }
