@@ -37,7 +37,7 @@ DNAlearn provides the option to tune the following hyperparameters:
 	dense1_neurons (number of neurons in the first dense layer)
 	dense2_neurons (number of neurons in the second dense layer - 0 means no 2nd dense layer)
 	filter_batch (the filter batch size for convolutional layers)
-	filter_len (the length of the filters for convultional layers)
+	filter_len (the length of the filters for convolutional layers)
 
 To specify hyperparameter values to vary, you must provide a config.json file using the following command:
 
@@ -46,13 +46,13 @@ To specify hyperparameter values to vary, you must provide a config.json file us
 Below is an example config file:
 
 	{
-	"optimizer": [0,1],
-	"loss": [0,2],
-	"lr": [0.001],
-	"dense1_neurons": [50,90],
-	"dense2_neurons": [0],
-	"filter_batch": [20],
-	"filter_len": [6,10]
+	    "optimizer": [0,1],
+	    "loss": [0,2],
+	    "lr": [0.001],
+	    "dense1_neurons": [50,90],
+	    "dense2_neurons": [0],
+	    "filter_batch": [20],
+	    "filter_len": [6,10]
 	}
 
 By combinatorially constructing models using these hyperparameters, DNAlearn will test (in this example) 16 different models and return the best one. Be careful - providing too many hyperparameters to choose from, and therefore a large amount of models to test, will take a large amount of computation time.
