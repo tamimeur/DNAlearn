@@ -4,6 +4,8 @@ import errno
 import pandas as pd
 import numpy as np
 import dnamodel as dm
+from sklearn.preprocessing import MinMaxScaler
+
 
 
 

@@ -2,7 +2,6 @@
 	"optimizer": [0],
 	"loss": [0],
 	"lr": [0.001],
-	"num_conv_layers": [2,3],
 	"dense1_neurons": [50,90],
 	"dense2_neurons": [0,10],
 	"filter_batch": [20],

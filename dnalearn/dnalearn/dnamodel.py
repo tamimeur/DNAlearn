@@ -9,6 +9,7 @@ import pandas as pd
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn import preprocessing
 from sklearn.metrics import make_scorer
+from sklearn.preprocessing import MinMaxScaler
 import scipy.stats as stats
 import datetime, time
 import json
@@ -17,15 +18,7 @@ import json
 np.random.seed(1337)
 
 
-#hyperparams include:
-#	optimizer ['adam','rms']
-#	loss ['mean_squared_error','mean_squared_logarithmic']
-#	learning rate [0.001, 0.01, 0.1]
-#	hidden layer neurons [(seq_len/8),(seq_len/4),(seq_len/2)]
-#	filter batches [20,40,60]
-#	filter lengths [(seq_len/50),(seq_len/25),(seq_len/12),(seq_len/6),(seq_len/3)]
-#	batch size [32,64,128]
-#	epochs [5,10,15]
+
 def create_model(learn_rate=0.001, filter_batch = 30, filter_len = 6, dense1_neurons = 1, dense2_neurons = 0, loss = 0,optimizer = 0, seq_len=15):
 	"""Builds a parameterized CNN Model"""
 	cnn = Sequential()
@@ -58,7 +51,6 @@ def create_model(learn_rate=0.001, filter_batch = 30, filter_len = 6, dense1_neu
 	elif loss == 2:
 		loss_type = 'poisson'
 
-	#cnn.compile(loss='mean_squared_error', optimizer=adam)
 	if optimizer == 0:
 		cnn.compile(loss=loss_type, optimizer=rms)
 	elif optimizer == 1:
@@ -96,14 +88,28 @@ class dnaModel(object):
 		xtrain, ytrain, xtest, ytest = [], [], [], []
 
 		df = self.df
+		
 		############# Format NN inputs #############
 		seq_len = len(df['sequence'][0])
+
+		#shuffle dataframe
+		df = df.sample(frac=1)
+		df = df.set_index('sequence')
+
+		#normalize
+		scaler = MinMaxScaler()
+		new_input_df = scaler.fit_transform(df)
+		new_input_df = pd.DataFrame(data=new_input_df, index=df.index, columns=df.columns)
+		df = new_input_df
+
+
 		X_data = np.empty([len(df),seq_len,4])
 		indx = 0
 
 		Y_data = np.array(df[['output1']])
 
-		for seq in df['sequence']:
+
+		for seq in list(df.index.values):
 			X_data[indx] = self.__oneHotEncoder(seq)
 			indx += 1
 
@@ -140,7 +146,6 @@ class dnaModel(object):
 			with open(self.config) as data_file:
 				config_data = json.load(data_file)
 				for key in config_data:
-					print key
 					if key == "lr":
 						learn_rate = config_data[key]
 					elif key == "dense1_neurons":
@@ -155,11 +160,7 @@ class dnaModel(object):
 						loss = config_data[key]
 					elif key == "optimizer":
 						optimizer = config_data[key]
-				# learn_rate = config_data["lr"]
-				# print "learn_rate is ", learn_rate
-
-
-		
+	
 		
 		param_grid = dict(learn_rate=learn_rate, dense1_neurons=dense1_neurons, dense2_neurons=dense2_neurons, filter_batch=filter_batch, filter_len=filter_len, loss=loss, optimizer=optimizer, seq_len = num_bases)
 
@@ -182,7 +183,6 @@ class dnaModel(object):
 		############ Need to extract best params and make a new model with it #############
 		###################################################################################
 		best_params = grid_result.best_params_
-		#learn_rate=0.001, filter_batch = 30, filter_len = 6, dense1_neurons = 1, dense2_neurons = 0, loss = 0,optimizer = 0, seq_len=15
 		tuned_model = create_model(best_params['learn_rate'], best_params['filter_batch'], best_params['filter_len'], best_params['dense1_neurons'], best_params['dense2_neurons'], best_params['loss'], best_params['optimizer'], best_params['seq_len'])
 		tuned_model.fit(xtrain, ytrain, batch_size=128, nb_epoch=6, verbose=1)
 		predicted = tuned_model.predict(xtest)
