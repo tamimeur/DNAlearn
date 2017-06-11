@@ -6,6 +6,7 @@ DNAlearn builds and tunes an optimal convolutional neural network (CNN) to model
 
 ## Installation
 I recommend installing in a virtual environment, as DNAlearn will attempt to install a specific version of Keras(1.2) and various other packages.
+	
 	pip install dnalearn
 
 ## Usage
